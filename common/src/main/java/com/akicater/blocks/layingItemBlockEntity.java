@@ -103,15 +103,15 @@ public class layingItemBlockEntity extends BlockEntity {
     }
 
     @Override
-    public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registryLookup) {
-        return createNbt(registryLookup);
+    public NbtCompound toInitialChunkDataNbt() {
+        return createNbt();
     }
 
     @Override
-    public void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.readNbt(nbt, registryLookup);
+    public void readNbt(NbtCompound nbt) {
+        super.readNbt(nbt);
         inventory.clear();
-        Inventories.readNbt(nbt, inventory, registryLookup);
+        Inventories.readNbt(nbt, inventory);
         if (nbt.contains("quat")) {
             QuaternionfsWithCodec.CODEC.parse(NbtOps.INSTANCE, nbt.getCompound("quat")).resultOrPartial(LOGGER::error).ifPresent(quat -> {
                 this.quaternions = quat;
@@ -126,9 +126,9 @@ public class layingItemBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.writeNbt(nbt, registryLookup);
-        Inventories.writeNbt(nbt, inventory, registryLookup);
+    public void writeNbt(NbtCompound nbt) {
+        super.writeNbt(nbt);
+        Inventories.writeNbt(nbt, inventory);
         QuaternionfsWithCodec.CODEC.encodeStart(NbtOps.INSTANCE, this.quaternions).resultOrPartial(LOGGER::error).ifPresent(
                 quat -> nbt.put("quat", quat)
         );

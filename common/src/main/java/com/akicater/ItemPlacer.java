@@ -142,7 +142,7 @@ public final class ItemPlacer {
         public static void initializeClient() {
             //BlockEntityRendererRegistry.register(LAYING_ITEM_BLOCK_ENTITY.get(), layingItemBER::new);
 
-            /*
+
             NetworkManager.registerReceiver(NetworkManager.Side.S2C, ITEMPLACE, (buf, context) -> {
                 PlayerEntity player = context.getPlayer();
                 ItemStack stack = player.getMainHandStack();
@@ -197,7 +197,7 @@ public final class ItemPlacer {
                         NetworkManager.sendToServer(ITEMPLACE, buf);
                     }
                 }
-            });*/
+            });
         }
     }
 
