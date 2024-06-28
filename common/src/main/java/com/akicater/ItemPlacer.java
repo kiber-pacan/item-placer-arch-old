@@ -89,6 +89,11 @@ public final class ItemPlacer {
         EnvExecutor.runInEnv(Env.CLIENT, () -> Client::initializeClient);
     }
 
+    public static void NeoInitialize() {
+
+        EnvExecutor.runInEnv(Env.CLIENT, () -> Client::initializeClient);
+    }
+
     @Environment(EnvType.CLIENT)
     public static class Client {
         @Environment(EnvType.CLIENT)

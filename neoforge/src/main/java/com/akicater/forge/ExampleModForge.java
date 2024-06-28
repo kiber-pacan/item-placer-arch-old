@@ -11,7 +11,7 @@ public final class ExampleModForge {
     public ExampleModForge() {
 
         // Run our common setup.
-        ItemPlacer.initialize();
+        ItemPlacer.NeoInitialize();
     }
 
 }
