@@ -3,15 +3,16 @@ loaderVersion = "[47,)"
 #issueTrackerURL = ""
 license = "Insert License Here"
 
+
 [[mods]]
 modId = "itemplacer"
 version = "${version}"
-displayName = "itemplacer"
+displayName = "item placer"
 authors = "Me!"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+Place any item on any block side
 '''
-#logoFile = ""
+logoFile = "assets/logo.png"
 
 [[dependencies.itemplacer]]
 modId = "forge"

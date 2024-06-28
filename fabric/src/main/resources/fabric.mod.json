@@ -12,14 +12,14 @@
     "sources": "https://github.com/FabricMC/fabric-example-mod"
   },
   "license": "CC0-1.0",
-  "icon": "assets/itemplacer/icon.png",
+  "icon": "assets/logo.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.akicater.fabric.ExampleModFabric"
+      "com.akicater.fabric.ItemPlacerModFabric"
     ],
     "client": [
-      "com.akicater.fabric.client.ExampleModFabricClient"
+      "com.akicater.fabric.client.ItemPlacerModFabricClient"
     ]
   },
   "mixins": [
