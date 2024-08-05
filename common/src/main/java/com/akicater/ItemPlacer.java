@@ -73,19 +73,7 @@ public final class ItemPlacer {
             () -> BlockEntityType.Builder.create(layingItemBlockEntity::new, LAYING_ITEM.get()).build(null)
     );
 
-    public static final KeyBinding STOP_SCROLLING_KEY = new KeyBinding(
-            "key.examplemod.stop_scrolling",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_ALT,
-            "Rotate item"
-    );
 
-    public static final KeyBinding PLACE_ITEM = new KeyBinding(
-            "key.examplemod.place_item",
-            InputUtil.Type.KEYSYM,
-            GLFW.GLFW_KEY_V,
-            "Place item"
-    );
 
 
 
@@ -133,73 +121,82 @@ public final class ItemPlacer {
                 ((layingItemBlockEntity) blockEntity).rotate(buf.readFloat(), getDirection(buf.readBlockHitResult()));
             }
         });
-        EnvExecutor.runInEnv(Env.CLIENT, () -> Client::initializeClient);
     }
 
-    @Environment(EnvType.CLIENT)
-    public static class Client {
-        @Environment(EnvType.CLIENT)
-        public static void initializeClient() {
-            //BlockEntityRendererRegistry.register(LAYING_ITEM_BLOCK_ENTITY.get(), layingItemBER::new);
+    public static KeyBinding STOP_SCROLLING_KEY;
+    public static KeyBinding PLACE_ITEM;
+    public static void initializeClient() {
+        STOP_SCROLLING_KEY = new KeyBinding(
+                "key.examplemod.stop_scrolling",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_LEFT_ALT,
+                "Rotate item"
+        );
 
+        PLACE_ITEM = new KeyBinding(
+                "key.examplemod.place_item",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_V,
+                "Place item"
+        );
 
-            NetworkManager.registerReceiver(NetworkManager.Side.S2C, ITEMPLACE, (buf, context) -> {
-                PlayerEntity player = context.getPlayer();
-                ItemStack stack = player.getMainHandStack();
-                World world = player.getEntityWorld();
-                BlockPos pos = buf.readBlockPos();
-                if (world.getBlockState(pos).getBlock() == Blocks.AIR) {
-                    player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
-                    Direction dir = buf.readBlockHitResult().getSide().getOpposite();
-                    BlockState state = LAYING_ITEM.get().getDefaultState();
-                    world.setBlockState(pos, state);
-                    state.initShapeCache();
-                    layingItemBlockEntity blockEntity = (layingItemBlockEntity)world.getChunk(pos).getBlockEntity(pos);
-                    if (blockEntity != null) {
-                        int i = dirToInt(dir);
+        NetworkManager.registerReceiver(NetworkManager.Side.S2C, ITEMPLACE, (buf, context) -> {
+            PlayerEntity player = context.getPlayer();
+            ItemStack stack = player.getMainHandStack();
+            World world = player.getEntityWorld();
+            BlockPos pos = buf.readBlockPos();
+            if (world.getBlockState(pos).getBlock() == Blocks.AIR) {
+                player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+                Direction dir = buf.readBlockHitResult().getSide().getOpposite();
+                BlockState state = LAYING_ITEM.get().getDefaultState();
+                world.setBlockState(pos, state);
+                state.initShapeCache();
+                layingItemBlockEntity blockEntity = (layingItemBlockEntity)world.getChunk(pos).getBlockEntity(pos);
+                if (blockEntity != null) {
+                    int i = dirToInt(dir);
+                    blockEntity.directions.list.set(i, true);
+                    blockEntity.inventory.set(i, stack);
+                    world.emitGameEvent(player, GameEvent.BLOCK_CHANGE, pos);
+                    blockEntity.markDirty();
+                }
+            } else if (world.getBlockState(pos).getBlock() == LAYING_ITEM.get()) {
+                Direction dir = buf.readBlockHitResult().getSide().getOpposite();
+                layingItemBlockEntity blockEntity = (layingItemBlockEntity)world.getChunk(pos).getBlockEntity(pos);
+                if (blockEntity != null) {
+                    int i = dirToInt(dir);
+                    if(blockEntity.inventory.get(i).isEmpty()) {
+                        player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
                         blockEntity.directions.list.set(i, true);
                         blockEntity.inventory.set(i, stack);
                         world.emitGameEvent(player, GameEvent.BLOCK_CHANGE, pos);
                         blockEntity.markDirty();
                     }
-                } else if (world.getBlockState(pos).getBlock() == LAYING_ITEM.get()) {
-                    Direction dir = buf.readBlockHitResult().getSide().getOpposite();
-                    layingItemBlockEntity blockEntity = (layingItemBlockEntity)world.getChunk(pos).getBlockEntity(pos);
-                    if (blockEntity != null) {
-                        int i = dirToInt(dir);
-                        if(blockEntity.inventory.get(i).isEmpty()) {
-                            player.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
-                            blockEntity.directions.list.set(i, true);
-                            blockEntity.inventory.set(i, stack);
-                            world.emitGameEvent(player, GameEvent.BLOCK_CHANGE, pos);
-                            blockEntity.markDirty();
-                        }
-                    }
                 }
-            });
+            }
+        });
 
-            NetworkManager.registerReceiver(NetworkManager.Side.C2S, ITEMROTATE, (buf, context) -> {
-                BlockPos pos = buf.readBlockPos();
-                World world = context.getPlayer().getEntityWorld();
-                BlockEntity blockEntity = world.getChunk(pos).getBlockEntity(pos);
-                if (blockEntity instanceof layingItemBlockEntity) {
-                    ((layingItemBlockEntity) blockEntity).rotate(buf.readFloat(), getDirection(buf.readBlockHitResult()));
+        NetworkManager.registerReceiver(NetworkManager.Side.C2S, ITEMROTATE, (buf, context) -> {
+            BlockPos pos = buf.readBlockPos();
+            World world = context.getPlayer().getEntityWorld();
+            BlockEntity blockEntity = world.getChunk(pos).getBlockEntity(pos);
+            if (blockEntity instanceof layingItemBlockEntity) {
+                ((layingItemBlockEntity) blockEntity).rotate(buf.readFloat(), getDirection(buf.readBlockHitResult()));
+            }
+        });
+        ClientTickEvent.CLIENT_POST.register(client -> {
+            if (PLACE_ITEM.wasPressed()) {
+                if (client.crosshairTarget instanceof BlockHitResult && client.player.getStackInHand(Hand.MAIN_HAND) != ItemStack.EMPTY && MinecraftClient.getInstance().world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos()).getBlock() != Blocks.AIR) {
+                    PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+                    Direction side = ((BlockHitResult) client.crosshairTarget).getSide();
+                    BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
+                    buf.writeBlockPos(pos.offset(side, 1));
+                    buf.writeBlockHitResult((BlockHitResult) client.crosshairTarget);
+                    NetworkManager.sendToServer(ITEMPLACE, buf);
                 }
-            });
-            ClientTickEvent.CLIENT_POST.register(client -> {
-                if (PLACE_ITEM.wasPressed()) {
-                    if (client.crosshairTarget instanceof BlockHitResult && client.player.getStackInHand(Hand.MAIN_HAND) != ItemStack.EMPTY && MinecraftClient.getInstance().world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos()).getBlock() != Blocks.AIR) {
-                        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-                        Direction side = ((BlockHitResult) client.crosshairTarget).getSide();
-                        BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
-                        buf.writeBlockPos(pos.offset(side, 1));
-                        buf.writeBlockHitResult((BlockHitResult) client.crosshairTarget);
-                        NetworkManager.sendToServer(ITEMPLACE, buf);
-                    }
-                }
-            });
-        }
+            }
+        });
     }
+
 
     public static int dirToInt(Direction dir) {
         return switch (dir) {

@@ -11,7 +11,7 @@ public class ModEventBusClientEvents {
 
     @SubscribeEvent
     public static void registerBER(EntityRenderersEvent.RegisterRenderers event) {
+        ItemPlacer.initializeClient();
         event.registerBlockEntityRenderer(ItemPlacer.LAYING_ITEM_BLOCK_ENTITY.get(), layingItemBER::new);
-        
     }
 }
